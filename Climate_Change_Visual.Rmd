@@ -1,0 +1,105 @@
+---
+title: "Climate Change Impact on Agriculture Visual - Revised"
+author: "Gabrielle Carbonel"
+date: "2024-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(maps)
+```
+
+## Data
+
+```{r}
+climate_data <- read_csv("climate_change_impact_on_agriculture_2024.csv")
+summary(climate_data)
+colnames(climate_data)
+climate_data
+```
+
+## Subset
+
+```{r, echo=FALSE}
+climate_data_crops <- subset(climate_data,
+                                      Crop_Type == "Fruits" |
+                                      Crop_Type == "Rice" |
+                                      Crop_Type == "Vegetables" 
+                                      )
+#This code subsets the rows based on specific crop types, I did this because there were way too many crops to plot on one graph
+north_data <- subset(climate_data, Region == "North")
+#This is also another subset of just the data from the Northern region
+```
+
+
+##Plot 1 Map of Economic Impact by Region
+```{r}
+world_map <- map_data("world")
+world_map <- na.omit(world_map)
+world_map <- world_map %>%
+  rename(Country = region)
+climate_summary <- climate_data %>%
+  group_by(Country) %>%
+  summarise(
+    Economic_Impact_Million_USD = mean(Economic_Impact_Million_USD, na.rm = TRUE)
+  )
+#I used StackOverFlow and a youtube video to helpme with lines 74,76, and 77)
+world_map <-left_join(world_map,climate_data, by="Country")
+ggplot(world_map) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = Economic_Impact_Million_USD), color = "white") +
+  scale_fill_gradient(low = "lightgreen", high = "darkgreen", name = "Economic Impact (Million USD)", na.value = "lightgrey") +
+  labs(title = "Economic Impact by Region") +
+  theme_minimal(base_size = 20) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+  )
+# I had a tricky time trying to put this on a map, but this is the best I got to.
+```
+The map represents the economic impact across countries, this acts as a very useful visual tool for understanding regional variations. High-impact regions are highlighted, making it easy to identify outliers which can provide a great basis for further investigation to understand the reasons behind their significant differences.
+I somewhat improved this by making it more aesthetically pleasing to look at because instead of having to read each individual region, viewers are able to just focus on the map itself and by the coloring of light or dark green on the map, one can see the economic impact by region!
+Old code:
+#ggplot(climate_data, aes(x = Region, y = Economic_Impact_Million_USD, fill = Region)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Economic Impact by Region",
+       x = "Region",
+       y = "Economic Impact (Million USD)") +
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+  )
+The old box-plot represented the distribution of economic impact (in millions of USD) for different regions. Each box represents the middle 50% of data points, and the line inside each box shows us the median economic impact. The whiskers extend to the minimum and maximum values within the interquartile range, which represents the middle 50% of the data. Data points that go beyond are the outliers and these values are unusually high and this suggests significantly high economic impact. The outliers can point to unusual events that may not represent the typical performance of that region, which can lead to further study on why these values are so different from the rest.
+
+##Plot 2 
+
+```{r}
+ggplot(north_data, aes(x = Average_Temperature_C)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", alpha = 1, color = "black") +
+  labs(title = "Distribution of Average Temperature in the North Region",
+       x = "Average Temperature (°C)",
+       y = "Frequency of Temperature") +
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.title = element_text(size = 14)
+  )
+```
+This plot shows us the two peaks of temperatures at around 15 degrees celsius and 30 degrees celsius. This can mean the Northern region commonly experiences two main temperature ranges, which can correspond to the different seasons. (make it more clear for the second graph for bars) ( temp vs time ). 
+Old code is down below
+#ggplot(north_data, aes(x = Average_Temperature_C)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", alpha = 0.7) +
+  labs(title = "Distribution of Average Temperature in the North Region",
+       x = "Average Temperature (°C)",
+       y = "Frequency of Temperature") +
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.title = element_text(size = 14)
+  )
+I improved this visualization by making the green more opaque, to visualize the density better for each temperature (2 degrees celcius, 4, 5...). I also improved this visualization by bolding each bar, so viewers are able to distinguish the Frequency of temperature over average temperature. 
+(StackOverFlow)
