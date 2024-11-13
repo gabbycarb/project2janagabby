@@ -1,0 +1,142 @@
+---
+title: "Climate Change Impact on Agriculture Visual - Project 2"
+authors: "Gabrielle Carbonel and Jana Vilanueva"
+date: "2024-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(maps)
+library(janitor)
+```
+
+## Data
+
+```{r}
+climate_data <- read_csv("climate_change_impact_on_agriculture_2024.csv")
+climate_data
+```
+
+## Subset
+
+```{r, echo=FALSE}
+climate_data_crops <- subset(climate_data,
+                                      Crop_Type == "Fruits" |
+                                      Crop_Type == "Rice" |
+                                      Crop_Type == "Vegetables" 
+                                      ) %>%
+  clean_names()
+
+#This code subsets the rows based on specific crop types, I did this because there were way too many crops to plot on one graph
+north_data <- subset(climate_data, Region == "North")
+#This is also another subset of just the data from the Northern region
+```
+
+```{r}
+world_map <- map_data("world")
+
+world_map <- world_map %>%
+  rename(country = region)
+climate_summary <- climate_data %>%
+  group_by(Country) %>%
+  summarise(
+    Economic_Impact_Million_USD = mean(Economic_Impact_Million_USD, na.rm = TRUE)
+  )
+
+climate_data_veg <- climate_data_crops[climate_data_crops$crop_type == "Vegetables",] %>% 
+  group_by(country, year) %>%
+  summarize(mean_impact = mean(economic_impact_million_usd, na.rm = T))
+
+#I used StackOverFlow and a youtube video to helpme with lines 74,76, and 77)
+#world_map_impact <- inner_join(world_map,climate_data_veg, by = "country")
+world_map_impact <- left_join(world_map,climate_data_veg, by = "country")
+```
+
+## Plot 1: Map of Economic Impact in Russia in the Year 2024
+
+```{r}
+countries<-unique(world_map_impact$country)
+years<-unique(world_map_impact$year)
+
+for (country in countries) {
+  for (year in years) {
+    
+    if (!is.na(country) & !is.na(year) & country == "Russia" & year == 2024) {
+      filtered_data<-subset(world_map_impact, country == "Russia" & year == 2024)
+      
+      plot<-ggplot(filtered_data) +
+        geom_polygon(aes(x = long, y = lat, group = group, fill = mean_impact), color = "black") +
+        scale_fill_gradient(low = "darkseagreen1", high = "darkseagreen4", name = "Economic Impact\n(Million USD)", na.value = "lightgrey") +
+        labs(title = "Economic Impact in Aruba for Year 2024") +
+        theme_minimal(base_size = 20) +
+        theme(
+          plot.title = element_text(hjust = 0.5, size = 18, face = "bold")
+        ) +
+        theme_void()
+      
+      print(plot)
+    }
+  }
+}
+```
+This code uses multiple loops to find data of a specific year and a specific country. This is useful when you want to isolate data and analyze differences trends for different years, of if you want to compare the impacts by country. In addition, if the code does not return a plot, this tells you if there is data present for a specific year or country you want instead of having to skim the data set.
+#Plot 2 - 
+```{r}
+
+countries <- unique(world_map_impact$country)
+years <- unique(world_map_impact$year)
+
+for (country in countries) {
+  for (year in years) {
+    if (!is.na(country) & !is.na(year) & country == "Russia" & year == 2024) {
+      # Filter data for the specific condition
+      filtered_data <- subset(world_map_impact, country == "Russia" & year == 2024)
+      
+      # Conditional statement: if mean_impact exceeds threshold
+      high_impact_threshold <- 1000
+      high_impact <- any(filtered_data$mean_impact > high_impact_threshold, na.rm = TRUE)
+      
+
+ggplot(filtered_data) +
+        geom_polygon(aes(x = long, y = lat, group = group, fill = mean_impact), color = "black") +
+        scale_fill_gradient(low = "darkseagreen1", high = "darkseagreen4", name = "Economic Impact\n(Million USD)", na.value = "lightgrey") +
+        labs(
+          title = if (high_impact) {
+            paste("High Economic Impact in", country, "for Year", year)
+          } else {
+            paste("Economic Impact in", country, "for Year", year)
+          },
+          x = NULL,
+          y = NULL
+        ) +
+        theme_minimal(base_size = 20) +
+        theme(
+          plot.title = element_text(hjust = 0.5, size = 18, face = "bold", color = if (high_impact) "red" else "black")
+        ) +
+        theme_void()
+    }
+  }
+}
+
+```
+
+#Explanation on Changes made from Project 1 for Project 2
+Old code:
+```{r}
+ggplot(world_map_impact) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = mean_impact), color = "black") +
+  scale_fill_gradient(low = "lightgreen", high = "darkgreen", name = "Economic Impact\n(Million USD)", na.value = "lightgrey") +
+  labs(title = "Economic Impact by Region") +
+  theme_minimal(base_size = 20) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+  ) +
+  theme_void()
+```
+The map represents the economic impact across countries, this acts as a very useful visual tool for understanding regional variations. High-impact regions are highlighted, making it easy to identify outliers which can provide a great basis for further investigation to understand the reasons behind their significant differences.
+I somewhat improved this by making it more aesthetically pleasing to look at because instead of having to read each individual region, viewers are able to just focus on the map itself and by the coloring of light or dark green on the map, one can see the economic impact by region!
