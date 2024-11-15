@@ -1,0 +1,91 @@
+---
+title: "Climate Change Impact on Agriculture Visual - Project 2"
+authors: "Gabrielle Carbonel and Jana Vilanueva"
+date: "2024-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(maps)
+library(janitor)
+```
+
+## Data
+
+```{r}
+climate_data <- read_csv("climate_change_impact_on_agriculture_2024.csv")
+climate_data
+```
+
+## Subset
+
+```{r, echo=FALSE}
+climate_data_crops <- subset(climate_data,
+                                      Crop_Type == "Fruits" |
+                                      Crop_Type == "Rice" |
+                                      Crop_Type == "Vegetables" 
+                                      ) %>%
+  clean_names()
+
+#This code subsets the rows based on specific crop types, I did this because there were way too many crops to plot on one graph
+north_data <- subset(climate_data, Region == "North")
+#This is also another subset of just the data from the Northern region
+```
+
+```{r}
+world_map <- map_data("world")
+
+world_map <- world_map %>%
+  rename(country = region)
+climate_summary <- climate_data %>%
+  group_by(Country) %>%
+  summarise(
+    Economic_Impact_Million_USD = mean(Economic_Impact_Million_USD, na.rm = TRUE)
+  )
+
+climate_data_veg <- climate_data_crops[climate_data_crops$crop_type == "Vegetables",] %>% 
+  group_by(country, year) %>%
+  summarize(mean_impact = mean(economic_impact_million_usd, na.rm = T))
+
+#I used StackOverFlow and a youtube video to helpme with lines 74,76, and 77)
+#world_map_impact <- inner_join(world_map,climate_data_veg, by = "country")
+world_map_impact <- left_join(world_map,climate_data_veg, by = "country")
+```
+
+## Plot 1 Map of Economic Impact by Region
+
+```{r}
+ggplot(world_map_impact) +
+  geom_polygon(aes(x = long, y = lat, group = group, fill = mean_impact), color = "black") +
+  scale_fill_gradient(low = "lightgreen", high = "darkgreen", name = "Economic Impact\n(Million USD)", na.value = "lightgrey") +
+  labs(title = "Economic Impact by Region") +
+  theme_minimal(base_size = 20) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+  ) +
+  theme_void()
+
+#Subset world-map_impact by year; make function that turns year into variable;loop through years; animation guide
+```
+The map represents the economic impact across countries, this acts as a very useful visual tool for understanding regional variations. High-impact regions are highlighted, making it easy to identify outliers which can provide a great basis for further investigation to understand the reasons behind their significant differences.
+I somewhat improved this by making it more aesthetically pleasing to look at because instead of having to read each individual region, viewers are able to just focus on the map itself and by the coloring of light or dark green on the map, one can see the economic impact by region!
+
+#Explanation on changes made from project 1
+Old code:
+#ggplot(climate_data, aes(x = Region, y = Economic_Impact_Million_USD, fill = Region)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Economic Impact by Region",
+       x = "Region",
+       y = "Economic Impact (Million USD)") +
+  theme_minimal(base_size = 15) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+  )
+The old box-plot represented the distribution of economic impact (in millions of USD) for different regions. Each box represents the middle 50% of data points, and the line inside each box shows us the median economic impact. The whiskers extend to the minimum and maximum values within the interquartile range, which represents the middle 50% of the data. Data points that go beyond are the outliers and these values are unusually high and this suggests significantly high economic impact. The outliers can point to unusual events that may not represent the typical performance of that region, which can lead to further study on why these values are so different from the rest.
+List major changes from old to new
